@@ -1,0 +1,6 @@
+{
+  "name": "کافه چینو",
+  "description": "سامانه مدیریت شیفت، کنترل موجودی انبار، تسک‌های کارکنان و رسپی‌های کافه چینو.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
