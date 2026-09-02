@@ -151,3 +151,214 @@ export function getInitialTasks(): TaskItem[] {
   ];
 }
 
+/**
+ * Returns initial realistic completions for demonstration and history
+ */
+export function getInitialTaskCompletions(): Record<string, { completed: boolean; completedAt?: string; completedBy?: string; completedByRole?: import('../types').AuthRole }> {
+  const result: Record<string, { completed: boolean; completedAt?: string; completedBy?: string; completedByRole?: import('../types').AuthRole }> = {};
+  
+  // Get past 5 days
+  const baseDate = new Date();
+  // Generate sample completions for offset 0 (today) and past 4 days
+  for (let offset = 0; offset < 5; offset++) {
+    const d = new Date(baseDate);
+    d.setDate(d.getDate() - offset);
+    const dayInfo = getTodayJalaliDate(d, false);
+    const dayStr = dayInfo.standardString;
+
+    if (offset === 0) {
+      // Today: some completed
+      result[`task-start-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۸:۴۵',
+        completedBy: 'سالندار اول',
+        completedByRole: 'waiter1',
+      };
+      result[`task-start-2_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۱۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-start-3_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۲۵',
+        completedBy: 'سالندار دوم',
+        completedByRole: 'waiter2',
+      };
+    } else if (offset === 1) {
+      // Yesterday: almost all completed
+      result[`task-start-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۸:۳۰',
+        completedBy: 'سالندار اول',
+        completedByRole: 'waiter1',
+      };
+      result[`task-start-2_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۸:۵۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-start-3_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۱۵',
+        completedBy: 'سالندار سوم',
+        completedByRole: 'waiter3',
+      };
+      result[`task-start-4_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۳۰',
+        completedBy: 'سالندار اول',
+        completedByRole: 'waiter1',
+      };
+      result[`task-start-5_${dayStr}`] = {
+        completed: true,
+        completedAt: '۱۰:۰۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۱۵',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-2_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۳۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-3_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۴۰',
+        completedBy: 'سالندار دوم',
+        completedByRole: 'waiter2',
+      };
+      result[`task-end-5_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۰:۱۵',
+        completedBy: 'مدیریت',
+        completedByRole: 'manager',
+      };
+    } else if (offset === 2) {
+      // 2 days ago
+      result[`task-start-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۸:۵۰',
+        completedBy: 'سالندار دوم',
+        completedByRole: 'waiter2',
+      };
+      result[`task-start-2_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۱۵',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-start-3_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۴۰',
+        completedBy: 'سالندار اول',
+        completedByRole: 'waiter1',
+      };
+      result[`task-end-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۲۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-4_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۴۵',
+        completedBy: 'سالندار سوم',
+        completedByRole: 'waiter3',
+      };
+      result[`task-end-5_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۰:۰۵',
+        completedBy: 'سالندار اول',
+        completedByRole: 'waiter1',
+      };
+    } else if (offset === 3) {
+      // 3 days ago
+      result[`task-start-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۸:۴۰',
+        completedBy: 'سالندار سوم',
+        completedByRole: 'waiter3',
+      };
+      result[`task-start-2_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۰۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-start-4_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۳۰',
+        completedBy: 'سالندار اول',
+        completedByRole: 'waiter1',
+      };
+      result[`task-end-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۱۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-2_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۳۰',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-3_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۵۰',
+        completedBy: 'سالندار دوم',
+        completedByRole: 'waiter2',
+      };
+    } else if (offset === 4) {
+      // 4 days ago
+      result[`task-start-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۸:۳۵',
+        completedBy: 'سالندار اول',
+        completedByRole: 'waiter1',
+      };
+      result[`task-start-2_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۰۵',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-start-3_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۲۰',
+        completedBy: 'سالندار دوم',
+        completedByRole: 'waiter2',
+      };
+      result[`task-start-5_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۹:۵۵',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-1_${dayStr}`] = {
+        completed: true,
+        completedAt: '۲۳:۰۵',
+        completedBy: 'ظرفشور',
+        completedByRole: 'dishwasher',
+      };
+      result[`task-end-5_${dayStr}`] = {
+        completed: true,
+        completedAt: '۰۰:۱۰',
+        completedBy: 'مدیریت',
+        completedByRole: 'manager',
+      };
+    }
+  }
+
+  return result;
+}
+

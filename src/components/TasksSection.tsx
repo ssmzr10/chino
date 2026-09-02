@@ -15,16 +15,21 @@ import {
   Bookmark,
   Sun,
   Moon,
-  Filter
+  Filter,
+  UserCheck,
+  History,
+  Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { TaskCompletionRecord, TaskItem, TaskRole, TaskType } from '../types';
+import { TaskCompletionRecord, TaskCompletionDetail, TaskItem, TaskRole, TaskType } from '../types';
 import { 
   getTodayJalaliDate, 
   toPersianDigits, 
   doesTaskApplyToday 
 } from '../utils/persianDate';
 import { TaskModal } from './TaskModal';
+import { TaskHistorySection } from './TaskHistorySection';
+import { StaffSchedulePdfModal } from './StaffSchedulePdfModal';
 
 interface TasksSectionProps {
   onBackToHome: () => void;
@@ -43,7 +48,7 @@ interface TasksSectionProps {
   onDeleteTask: (taskId: string) => void;
 }
 
-type MainViewTab = 'today' | 'dishwasher' | 'waiter';
+type MainViewTab = 'today' | 'history' | 'dishwasher' | 'waiter';
 
 export const TasksSection: React.FC<TasksSectionProps> = ({
   onBackToHome,
@@ -55,6 +60,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<MainViewTab>('today');
   const [roleFilter, setRoleFilter] = useState<'all' | TaskRole>('all');
+  const [pdfModalRole, setPdfModalRole] = useState<'dishwasher' | 'waiter' | null>(null);
 
   const todayInfo = useMemo(() => getTodayJalaliDate(), []);
   const todayStr = todayInfo.standardString;
@@ -184,60 +190,74 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
         </div>
       </header>
 
-      {/* 3 Main Display Views Tab Switcher */}
-      <div className="bg-[#FAF8F5] border-b border-[#EFEBE9] px-4 py-2 sticky top-[61px] z-30">
-        <div className="max-w-2xl mx-auto flex items-center gap-1.5 sm:gap-2">
+      {/* 4 Main Display Views Tab Switcher */}
+      <div className="bg-[#FAF8F5] border-b border-[#EFEBE9] px-3 sm:px-4 py-2 sticky top-[61px] z-30">
+        <div className="max-w-2xl mx-auto grid grid-cols-4 gap-1 sm:gap-2">
           {/* VIEW 1: کارهای امروز */}
           <button
             type="button"
             onClick={() => setActiveTab('today')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-2 rounded-2xl text-[11px] sm:text-xs font-bold transition-all ${
               activeTab === 'today'
                 ? 'bg-[#3E2723] text-white shadow-sm'
                 : 'bg-white text-[#6F5A52] hover:bg-[#F5F2EC] border border-[#E6DFD5]'
             }`}
           >
-            <CheckCircle2 className={`w-4 h-4 ${activeTab === 'today' ? 'text-[#FADCD2]' : 'text-[#8D6E63]'}`} />
-            <span>کارهای امروز</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+            <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'today' ? 'text-[#FADCD2]' : 'text-[#8D6E63]'}`} />
+            <span className="truncate">کارهای امروز</span>
+            <span className={`text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
               activeTab === 'today' ? 'bg-[#5D4037] text-white' : 'bg-[#EFEBE9] text-[#5D4037]'
             }`}>
               {toPersianDigits(todayTasks.length - completedTodayCount)}
             </span>
           </button>
 
-          {/* VIEW 2: وظایف ظرفشور */}
+          {/* VIEW 2: تاریخچه ۵ روز اخیر */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-2 rounded-2xl text-[11px] sm:text-xs font-bold transition-all ${
+              activeTab === 'history'
+                ? 'bg-[#3E2723] text-white shadow-sm'
+                : 'bg-white text-[#6F5A52] hover:bg-[#F5F2EC] border border-[#E6DFD5]'
+            }`}
+          >
+            <History className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'history' ? 'text-[#FADCD2]' : 'text-[#8D6E63]'}`} />
+            <span className="truncate">تاریخچه ۵ روز</span>
+          </button>
+
+          {/* VIEW 3: وظایف ظرفشور */}
           <button
             type="button"
             onClick={() => setActiveTab('dishwasher')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-2 rounded-2xl text-[11px] sm:text-xs font-bold transition-all ${
               activeTab === 'dishwasher'
                 ? 'bg-[#3E2723] text-white shadow-sm'
                 : 'bg-white text-[#6F5A52] hover:bg-[#F5F2EC] border border-[#E6DFD5]'
             }`}
           >
-            <Utensils className={`w-3.5 h-3.5 ${activeTab === 'dishwasher' ? 'text-[#FADCD2]' : 'text-[#8D6E63]'}`} />
-            <span>وظایف ظرفشور</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+            <Utensils className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'dishwasher' ? 'text-[#FADCD2]' : 'text-[#8D6E63]'}`} />
+            <span className="truncate">ظرفشور</span>
+            <span className={`text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
               activeTab === 'dishwasher' ? 'bg-[#5D4037] text-white' : 'bg-[#EFEBE9] text-[#5D4037]'
             }`}>
               {toPersianDigits(dishwasherTasks.length)}
             </span>
           </button>
 
-          {/* VIEW 3: وظایف سالندار */}
+          {/* VIEW 4: وظایف سالندار */}
           <button
             type="button"
             onClick={() => setActiveTab('waiter')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-2xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1 sm:gap-1.5 py-2 sm:py-2.5 px-1 sm:px-2 rounded-2xl text-[11px] sm:text-xs font-bold transition-all ${
               activeTab === 'waiter'
                 ? 'bg-[#3E2723] text-white shadow-sm'
                 : 'bg-white text-[#6F5A52] hover:bg-[#F5F2EC] border border-[#E6DFD5]'
             }`}
           >
-            <Coffee className={`w-3.5 h-3.5 ${activeTab === 'waiter' ? 'text-[#FADCD2]' : 'text-[#8D6E63]'}`} />
-            <span>وظایف سالندار</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+            <Coffee className={`w-3.5 h-3.5 shrink-0 ${activeTab === 'waiter' ? 'text-[#FADCD2]' : 'text-[#8D6E63]'}`} />
+            <span className="truncate">سالندار</span>
+            <span className={`text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
               activeTab === 'waiter' ? 'bg-[#5D4037] text-white' : 'bg-[#EFEBE9] text-[#5D4037]'
             }`}>
               {toPersianDigits(waiterTasks.length)}
@@ -389,7 +409,17 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
         )}
 
         {/* ========================================================= */}
-        {/* VIEW 2: وظایف ظرفشور (DISHWASHER REFERENCE VIEW) */}
+        {/* VIEW 2: تاریخچه ۵ روز اخیر (5-DAY AUDIT & HISTORY VIEW) */}
+        {/* ========================================================= */}
+        {activeTab === 'history' && (
+          <TaskHistorySection
+            tasks={tasks}
+            completions={completions}
+          />
+        )}
+
+        {/* ========================================================= */}
+        {/* VIEW 3: وظایف ظرفشور (DISHWASHER REFERENCE VIEW) */}
         {/* ========================================================= */}
         {activeTab === 'dishwasher' && (
           <RoleReferenceView
@@ -407,6 +437,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
               setTaskToEdit(task);
               setIsTaskModalOpen(true);
             }}
+            onDownloadPdf={() => setPdfModalRole('dishwasher')}
           />
         )}
 
@@ -429,6 +460,7 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
               setTaskToEdit(task);
               setIsTaskModalOpen(true);
             }}
+            onDownloadPdf={() => setPdfModalRole('waiter')}
           />
         )}
       </main>
@@ -444,6 +476,45 @@ export const TasksSection: React.FC<TasksSectionProps> = ({
         onSaveTask={onSaveTask}
         onDeleteTask={onDeleteTask}
       />
+
+      {/* Weekly Staff Schedule PDF Export Modal */}
+      <StaffSchedulePdfModal
+        isOpen={Boolean(pdfModalRole)}
+        onClose={() => setPdfModalRole(null)}
+        role={pdfModalRole || 'dishwasher'}
+        tasks={tasks}
+      />
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// HELPER: RENDER COMPLETED BY BADGE & TIME
+// ─────────────────────────────────────────────────────────────
+const renderCompletedInfo = (detail?: TaskCompletionDetail) => {
+  if (!detail || !detail.completed) return null;
+  const by = detail.completedBy || 'نامشخص';
+  const role = detail.completedByRole;
+
+  let bgClass = 'bg-[#EFEBE9] text-[#5D4037] border-[#D7CCC8]';
+  if (role === 'waiter1') bgClass = 'bg-[#E1F5FE] text-[#0288D1] border-[#B3E5FC]';
+  else if (role === 'waiter2') bgClass = 'bg-[#EDE7F6] text-[#6A1B9A] border-[#D1C4E9]';
+  else if (role === 'waiter3') bgClass = 'bg-[#E0F2F1] text-[#00695C] border-[#B2DFDB]';
+  else if (role === 'dishwasher') bgClass = 'bg-[#FFF3E0] text-[#E65100] border-[#FFE0B2]';
+  else if (role === 'manager') bgClass = 'bg-[#FBE9E7] text-[#D84315] border-[#FFCCBC]';
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap pt-0.5">
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${bgClass}`}>
+        <UserCheck className="w-3 h-3" />
+        <span>انجام توسط: {by}</span>
+      </span>
+      {detail.completedAt && (
+        <span className="text-[10px] text-[#2E7D32] font-semibold flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          <span>ساعت {detail.completedAt}</span>
+        </span>
+      )}
     </div>
   );
 };
@@ -503,8 +574,8 @@ const TodayTasksGroupSection: React.FC<TodayTasksGroupSectionProps> = ({
       <div className="space-y-2.5">
         {tasks.map((task) => {
           const key = `${task.id}_${todayStr}`;
-          const isDone = completions[key]?.completed;
-          const doneTime = completions[key]?.completedAt;
+          const compDetail = completions[key];
+          const isDone = compDetail?.completed;
 
           return (
             <div
@@ -547,12 +618,7 @@ const TodayTasksGroupSection: React.FC<TodayTasksGroupSectionProps> = ({
                     </p>
                   )}
 
-                  {isDone && doneTime && (
-                    <span className="text-[10px] text-[#2E7D32] font-semibold flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>انجام شد در ساعت {doneTime}</span>
-                    </span>
-                  )}
+                  {isDone && renderCompletedInfo(compDetail)}
                 </div>
               </button>
 
@@ -588,6 +654,7 @@ interface RoleReferenceViewProps {
   onToggle: (taskId: string) => void;
   getRoleBadge: (role: TaskRole) => React.ReactNode;
   onEdit: (task: TaskItem) => void;
+  onDownloadPdf?: () => void;
 }
 
 const RoleReferenceView: React.FC<RoleReferenceViewProps> = ({
@@ -602,6 +669,7 @@ const RoleReferenceView: React.FC<RoleReferenceViewProps> = ({
   onToggle,
   getRoleBadge,
   onEdit,
+  onDownloadPdf,
 }) => {
   const shiftStartTasks = tasks.filter((t) => t.taskType === 'shift_start');
   const shiftEndTasks = tasks.filter((t) => t.taskType === 'shift_end');
@@ -611,21 +679,34 @@ const RoleReferenceView: React.FC<RoleReferenceViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Role Intro Banner */}
-      <div className="bg-white rounded-3xl p-5 border border-[#EFEBE9] shadow-[0_4px_16px_rgba(62,39,35,0.04)] flex items-start gap-3.5">
-        <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center shrink-0 shadow-xs`}>
-          <Icon className="w-6 h-6" />
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <h2 className="font-extrabold text-base text-[#201A19]">وظایف شیفت {roleTitle}</h2>
-            <span className="text-[11px] bg-[#F5F2EC] text-[#5D4037] font-bold px-2.5 py-0.5 rounded-full border border-[#E6DFD5]">
-              {toPersianDigits(tasks.length)} وظیفه
-            </span>
+      <div className="bg-white rounded-3xl p-5 border border-[#EFEBE9] shadow-[0_4px_16px_rgba(62,39,35,0.04)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center shrink-0 shadow-xs`}>
+            <Icon className="w-6 h-6" />
           </div>
-          <p className="text-xs text-[#6F5A52] leading-relaxed">
-            {roleDescription}
-          </p>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h2 className="font-extrabold text-base text-[#201A19]">وظایف شیفت {roleTitle}</h2>
+              <span className="text-[11px] bg-[#F5F2EC] text-[#5D4037] font-bold px-2.5 py-0.5 rounded-full border border-[#E6DFD5]">
+                {toPersianDigits(tasks.length)} وظیفه
+              </span>
+            </div>
+            <p className="text-xs text-[#6F5A52] leading-relaxed">
+              {roleDescription}
+            </p>
+          </div>
         </div>
+
+        {onDownloadPdf && (
+          <button
+            type="button"
+            onClick={onDownloadPdf}
+            className="flex items-center justify-center gap-2 bg-[#FAF8F5] hover:bg-[#3E2723] hover:text-white text-[#3E2723] font-bold text-xs px-4 py-2.5 rounded-2xl border border-[#E6DFD5] transition-all shrink-0 shadow-xs active:scale-95"
+          >
+            <Download className="w-4 h-4" />
+            <span>دانلود PDF برنامه هفتگی</span>
+          </button>
+        )}
       </div>
 
       {/* 1. شروع شیفت */}
@@ -724,8 +805,8 @@ const RoleTaskCategoryGroup: React.FC<RoleTaskCategoryGroupProps> = ({
         {tasks.map((task) => {
           const appliesToday = doesTaskApplyToday(task, todayStr, todayWeekday);
           const key = `${task.id}_${todayStr}`;
-          const isDoneToday = completions[key]?.completed;
-          const doneTime = completions[key]?.completedAt;
+          const compDetail = completions[key];
+          const isDoneToday = compDetail?.completed;
 
           return (
             <div
@@ -798,12 +879,7 @@ const RoleTaskCategoryGroup: React.FC<RoleTaskCategoryGroupProps> = ({
                     </p>
                   )}
 
-                  {appliesToday && isDoneToday && doneTime && (
-                    <span className="text-[10px] text-[#2E7D32] font-semibold flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      <span>امروز در ساعت {doneTime} انجام شد</span>
-                    </span>
-                  )}
+                  {appliesToday && isDoneToday && renderCompletedInfo(compDetail)}
                 </div>
               </div>
 

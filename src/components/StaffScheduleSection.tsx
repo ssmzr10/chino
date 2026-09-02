@@ -14,10 +14,13 @@ import {
   CalendarDays,
   Utensils,
   Coffee,
-  Users
+  Users,
+  UserCheck,
+  Download,
+  FileText
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { AuthRole, TaskCompletionRecord, TaskItem, TaskRole } from '../types';
+import { AuthRole, TaskCompletionRecord, TaskCompletionDetail, TaskItem, TaskRole } from '../types';
 import { 
   getTodayJalaliDate, 
   toPersianDigits, 
@@ -25,6 +28,7 @@ import {
   PERSIAN_WEEKDAYS_FULL,
   normalizePersianWeekday
 } from '../utils/persianDate';
+import { StaffSchedulePdfModal } from './StaffSchedulePdfModal';
 
 interface StaffScheduleSectionProps {
   role: 'dishwasher' | 'waiter1' | 'waiter2' | 'waiter3';
@@ -44,6 +48,7 @@ export const StaffScheduleSection: React.FC<StaffScheduleSectionProps> = ({
   onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<StaffTab>('today');
+  const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
 
   const todayInfo = useMemo(() => getTodayJalaliDate(), []);
   const todayStr = todayInfo.standardString;
@@ -189,16 +194,30 @@ export const StaffScheduleSection: React.FC<StaffScheduleSectionProps> = ({
             </div>
           </div>
 
-          {/* Logout Button */}
-          <button
-            type="button"
-            onClick={onLogout}
-            className="flex items-center gap-1.5 bg-white hover:bg-[#FFDAD6]/30 active:scale-95 text-[#BA1A1A] hover:text-[#93000A] text-xs font-bold px-3 py-2 rounded-2xl border border-[#E6DFD5] transition-all shadow-xs"
-            title="خروج از حساب کاربری"
-          >
-            <LogOut className="w-4 h-4 rotate-180" />
-            <span>خروج</span>
-          </button>
+          {/* Header Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsPdfModalOpen(true)}
+              className="flex items-center gap-1.5 bg-[#FAF8F5] hover:bg-[#F5F2EC] active:scale-95 text-[#3E2723] text-xs font-bold px-3 py-2 rounded-2xl border border-[#E6DFD5] transition-all shadow-xs"
+              title="دانلود فایل PDF برنامه هفتگی"
+            >
+              <Download className="w-4 h-4 text-[#8D6E63]" />
+              <span className="hidden sm:inline">دانلود PDF برنامه</span>
+              <span className="sm:hidden">PDF</span>
+            </button>
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex items-center gap-1.5 bg-white hover:bg-[#FFDAD6]/30 active:scale-95 text-[#BA1A1A] hover:text-[#93000A] text-xs font-bold px-3 py-2 rounded-2xl border border-[#E6DFD5] transition-all shadow-xs"
+              title="خروج از حساب کاربری"
+            >
+              <LogOut className="w-4 h-4 rotate-180" />
+              <span>خروج</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -352,6 +371,30 @@ export const StaffScheduleSection: React.FC<StaffScheduleSectionProps> = ({
         {/* ========================================================= */}
         {activeTab === 'weekly' && (
           <div className="space-y-4">
+            {/* Download PDF Card Banner */}
+            <div className="bg-[#3E2723] text-white rounded-3xl p-5 shadow-[0_4px_20px_rgba(62,39,35,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold bg-[#5D4037] text-[#FADCD2] px-2.5 py-0.5 rounded-full border border-[#8D6E63]/30">
+                    نسخه رسمی چاپی
+                  </span>
+                  <h3 className="font-black text-sm sm:text-base text-white">دانلود برنامه جامع هفتگی (PDF)</h3>
+                </div>
+                <p className="text-xs text-[#D7CCC8] leading-relaxed">
+                  شامل روتین‌های روزانه شروع و پایان شیفت، جدول تفکیکی روزهای هفته و بخش امضا
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsPdfModalOpen(true)}
+                className="flex items-center justify-center gap-2 bg-[#FAF8F5] hover:bg-white active:scale-95 text-[#3E2723] font-extrabold text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-xs transition-all shrink-0"
+              >
+                <Download className="w-4 h-4 text-[#8D6E63]" />
+                <span>دانلود و پرینت PDF</span>
+              </button>
+            </div>
+
             {/* Daily Shift Routine Info Card */}
             <div className="bg-white rounded-3xl p-5 border border-[#EFEBE9] shadow-[0_4px_16px_rgba(62,39,35,0.04)] space-y-2.5">
               <div className="flex items-center gap-2 text-[#3E2723]">
@@ -437,6 +480,45 @@ export const StaffScheduleSection: React.FC<StaffScheduleSectionProps> = ({
           </div>
         )}
       </main>
+
+      {/* Weekly Staff Schedule PDF Modal */}
+      <StaffSchedulePdfModal
+        isOpen={isPdfModalOpen}
+        onClose={() => setIsPdfModalOpen(false)}
+        role={role}
+        tasks={tasks}
+      />
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
+// HELPER: RENDER COMPLETED INFO IN STAFF VIEW
+// ─────────────────────────────────────────────────────────────
+const renderStaffCompletedInfo = (detail?: TaskCompletionDetail) => {
+  if (!detail || !detail.completed) return null;
+  const by = detail.completedBy || 'نامشخص';
+  const role = detail.completedByRole;
+
+  let bgClass = 'bg-[#EFEBE9] text-[#5D4037] border-[#D7CCC8]';
+  if (role === 'waiter1') bgClass = 'bg-[#E1F5FE] text-[#0288D1] border-[#B3E5FC]';
+  else if (role === 'waiter2') bgClass = 'bg-[#EDE7F6] text-[#6A1B9A] border-[#D1C4E9]';
+  else if (role === 'waiter3') bgClass = 'bg-[#E0F2F1] text-[#00695C] border-[#B2DFDB]';
+  else if (role === 'dishwasher') bgClass = 'bg-[#FFF3E0] text-[#E65100] border-[#FFE0B2]';
+  else if (role === 'manager') bgClass = 'bg-[#FBE9E7] text-[#D84315] border-[#FFCCBC]';
+
+  return (
+    <div className="flex items-center gap-2 flex-wrap pt-0.5">
+      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${bgClass}`}>
+        <UserCheck className="w-3 h-3" />
+        <span>توسط: {by}</span>
+      </span>
+      {detail.completedAt && (
+        <span className="text-[10px] text-[#2E7D32] font-semibold flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          <span>ساعت {detail.completedAt}</span>
+        </span>
+      )}
     </div>
   );
 };
@@ -492,8 +574,8 @@ const StaffTaskGroup: React.FC<StaffTaskGroupProps> = ({
       <div className="space-y-2">
         {tasks.map((task) => {
           const key = `${task.id}_${todayStr}`;
-          const isDone = completions[key]?.completed;
-          const doneTime = completions[key]?.completedAt;
+          const compDetail = completions[key];
+          const isDone = compDetail?.completed;
 
           return (
             <button
@@ -534,12 +616,7 @@ const StaffTaskGroup: React.FC<StaffTaskGroupProps> = ({
                   </p>
                 )}
 
-                {isDone && doneTime && (
-                  <span className="text-[10px] text-[#2E7D32] font-semibold flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>انجام شد در ساعت {doneTime}</span>
-                  </span>
-                )}
+                {isDone && renderStaffCompletedInfo(compDetail)}
               </div>
             </button>
           );

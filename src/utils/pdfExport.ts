@@ -13,67 +13,67 @@ export async function exportReportToPdf({
   onProgress
 }: GeneratePdfOptions): Promise<boolean> {
   try {
-    onProgress?.('در حال آماده‌سازی تصویر سند...');
+    onProgress?.('در حال آماده‌سازی و بررسی فونت‌های سند...');
 
-    // Temporarily ensure proper rendering styles
-    const originalShadow = element.style.boxShadow;
-    element.style.boxShadow = 'none';
-
-    // Wait for fonts to load
-    if (document.fonts) {
+    // 1. Ensure fonts (Vazirmatn) are completely loaded
+    if (document.fonts && document.fonts.ready) {
       await document.fonts.ready;
     }
 
-    onProgress?.('در حال اسکن و پردازش حروف فارسی...');
-    const canvas = await html2canvas(element, {
-      scale: 2, // 2x scale for sharp text in A4 PDF
-      useCORS: true,
-      logging: false,
-      backgroundColor: '#ffffff',
-      windowWidth: 800,
+    // 2. Extra frame + buffer for layout engine stabilization
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => {
+        setTimeout(() => resolve(), 150);
+      });
     });
 
-    element.style.boxShadow = originalShadow;
+    onProgress?.('در حال رندر و پردازش حروف فارسی...');
 
-    onProgress?.('در حال تولید فایل PDF...');
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    // 3. Capture with html2canvas using exact 800px width and high scale
+    const canvas = await html2canvas(element, {
+      scale: 2.5, // Crisp 300dpi-like output for high readability
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      backgroundColor: '#ffffff',
+      width: 800,
+      windowWidth: 800,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+    });
 
-    // A4 dimensions in mm: 210 x 297
+    onProgress?.('در حال قالب‌بندی و تولید فایل PDF...');
+    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+
+    // 4. A4 dimensions in mm: 210 x 297
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
-      compress: true
+      compress: true,
     });
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const pageWidth = 210; // A4 width mm
+    const pageHeight = 297; // A4 height mm
+    const margin = 8; // 8mm margin
+    const printWidth = pageWidth - (margin * 2);
+    const printHeight = (canvas.height * printWidth) / canvas.width;
 
-    // Canvas aspect ratio
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
-    const ratio = imgHeight / imgWidth;
+    let heightLeft = printHeight;
+    let position = margin;
 
-    const renderWidth = pdfWidth;
-    const renderHeight = pdfWidth * ratio;
+    // First page
+    pdf.addImage(imgData, 'JPEG', margin, position, printWidth, printHeight, undefined, 'FAST');
+    heightLeft -= (pageHeight - margin * 2);
 
-    if (renderHeight <= pdfHeight) {
-      // Fits in 1 page
-      pdf.addImage(imgData, 'JPEG', 0, 0, renderWidth, renderHeight, undefined, 'FAST');
-    } else {
-      // Multi-page splitting if content is long
-      let heightLeft = renderHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'JPEG', 0, position, renderWidth, renderHeight, undefined, 'FAST');
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - renderHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, renderWidth, renderHeight, undefined, 'FAST');
-        heightLeft -= pdfHeight;
-      }
+    // Additional pages if needed
+    while (heightLeft > 0) {
+      position = heightLeft - printHeight + margin;
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', margin, position, printWidth, printHeight, undefined, 'FAST');
+      heightLeft -= (pageHeight - margin * 2);
     }
 
     onProgress?.('در حال دانلود سند...');
@@ -84,3 +84,4 @@ export async function exportReportToPdf({
     return false;
   }
 }
+

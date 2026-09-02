@@ -10,14 +10,12 @@ import {
   Coffee, 
   AlertTriangle,
   Check,
-  Building2,
   Clock
 } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import confetti from 'canvas-confetti';
 import { Category, RequirementItem } from '../types';
 import { getTodayJalaliDate, toPersianDigits, formatTimePersian } from '../utils/persianDate';
+import { exportReportToPdf } from '../utils/pdfExport';
 
 interface ReportPreviewProps {
   isOpen: boolean;
@@ -34,8 +32,10 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
   requirements,
   onClearShiftRequirements,
 }) => {
-  const reportRef = useRef<HTMLDivElement>(null);
+  const visibleReportRef = useRef<HTMLDivElement>(null);
+  const pdfExportRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState<string>('');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   const todayInfo = getTodayJalaliDate();
@@ -78,13 +78,13 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
       const val = Number(item.value) || 0;
       if (val === 0) {
         return (
-          <span className="bg-[#FFDAD6] text-[#BA1A1A] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#FFB4AB]">
+          <span className="bg-[#FFDAD6] text-[#BA1A1A] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#FFB4AB] shrink-0 whitespace-nowrap">
             ناموجود
           </span>
         );
       }
       return (
-        <span className="bg-[#E8F5E9] text-[#2E7D32] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#C8E6C9]">
+        <span className="bg-[#E8F5E9] text-[#2E7D32] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#C8E6C9] shrink-0 whitespace-nowrap">
           موجود
         </span>
       );
@@ -93,27 +93,27 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
     if (item.type === 'level') {
       if (item.value === 'empty') {
         return (
-          <span className="bg-[#FFDAD6] text-[#BA1A1A] border border-[#FFB4AB] px-2.5 py-0.5 rounded-full text-xs font-bold">
+          <span className="bg-[#FFDAD6] text-[#BA1A1A] border border-[#FFB4AB] px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 whitespace-nowrap">
             کلا نداریم
           </span>
         );
       }
       if (item.value === 'low') {
         return (
-          <span className="bg-[#FFF3E0] text-[#E65100] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#FFE0B2]">
+          <span className="bg-[#FFF3E0] text-[#E65100] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#FFE0B2] shrink-0 whitespace-nowrap">
             کم داریم
           </span>
         );
       }
       if (item.value === 'full') {
         return (
-          <span className="bg-[#E8F5E9] text-[#2E7D32] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#C8E6C9]">
+          <span className="bg-[#E8F5E9] text-[#2E7D32] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#C8E6C9] shrink-0 whitespace-nowrap">
             پر / کامل
           </span>
         );
       }
       return (
-        <span className="bg-[#E0F2FE] text-[#0288D1] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#B3E5FC]">
+        <span className="bg-[#E0F2FE] text-[#0288D1] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#B3E5FC] shrink-0 whitespace-nowrap">
           متوسط
         </span>
       );
@@ -121,11 +121,11 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
 
     if (item.type === 'boolean') {
       return Boolean(item.value) ? (
-        <span className="bg-[#E8F5E9] text-[#2E7D32] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#C8E6C9]">
+        <span className="bg-[#E8F5E9] text-[#2E7D32] px-2.5 py-0.5 rounded-full text-xs font-bold border border-[#C8E6C9] shrink-0 whitespace-nowrap">
           موجود
         </span>
       ) : (
-        <span className="bg-[#FFDAD6] text-[#BA1A1A] border border-[#FFB4AB] px-2.5 py-0.5 rounded-full text-xs font-bold">
+        <span className="bg-[#FFDAD6] text-[#BA1A1A] border border-[#FFB4AB] px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 whitespace-nowrap">
           ناموجود
         </span>
       );
@@ -138,7 +138,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
     if (item.type === 'numeric') {
       const val = Number(item.value) || 0;
       return (
-        <span className="font-extrabold text-[#201A19] text-sm">
+        <span className="font-extrabold text-[#201A19] text-sm shrink-0 whitespace-nowrap">
           {toPersianDigits(val)}{' '}
           <span className="text-[11px] font-normal text-[#6F5A52]">{item.unit || 'عدد'}</span>
         </span>
@@ -153,7 +153,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
       };
       const isOut = item.value === 'empty';
       return (
-        <span className={`font-bold text-xs ${isOut ? 'text-[#BA1A1A]' : 'text-[#201A19]'}`}>
+        <span className={`font-bold text-xs shrink-0 whitespace-nowrap ${isOut ? 'text-[#BA1A1A]' : 'text-[#201A19]'}`}>
           {labels[item.value as string] || 'متوسط'}
         </span>
       );
@@ -162,75 +162,43 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
   };
 
   const handleDownloadPDF = async () => {
-    if (!reportRef.current) return;
+    const targetEl = pdfExportRef.current || visibleReportRef.current;
+    if (!targetEl) return;
+    
     setIsExporting(true);
+    setExportProgress('در حال بررسی قلم‌ها و آماده‌سازی سند...');
 
     try {
-      if (document.fonts && document.fonts.ready) {
-        await document.fonts.ready;
-      }
-
-      const element = reportRef.current;
-
-      // Capture with high quality and sharp text
-      const canvas = await html2canvas(element, {
-        scale: 2.5,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        windowWidth: 850,
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.98);
-      
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: true,
-      });
-
-      const pageWidth = 210; // A4 width mm
-      const pageHeight = 297; // A4 height mm
-      const margin = 8; // 8mm margin
-      const printWidth = pageWidth - (margin * 2);
-      const printHeight = (canvas.height * printWidth) / canvas.width;
-
-      let heightLeft = printHeight;
-      let position = margin;
-
-      pdf.addImage(imgData, 'JPEG', margin, position, printWidth, printHeight, undefined, 'FAST');
-      heightLeft -= (pageHeight - margin * 2);
-
-      while (heightLeft > 0) {
-        position = heightLeft - printHeight + margin;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', margin, position, printWidth, printHeight, undefined, 'FAST');
-        heightLeft -= (pageHeight - margin * 2);
-      }
-
       const fileName = `گزارش-موجودی-کافه-چینو-${todayInfo.standardString.replace(/\//g, '-')}.pdf`;
-      pdf.save(fileName);
+      const success = await exportReportToPdf({
+        element: targetEl,
+        filename: fileName,
+        onProgress: (status) => setExportProgress(status),
+      });
 
-      try {
-        confetti({
-          particleCount: 60,
-          spread: 60,
-          origin: { y: 0.8 },
-          colors: ['#3E2723', '#D7CCC8', '#8D6E63', '#4CAF50'],
-        });
-      } catch {
-        // Safe fallback
+      if (success) {
+        try {
+          confetti({
+            particleCount: 60,
+            spread: 60,
+            origin: { y: 0.8 },
+            colors: ['#3E2723', '#D7CCC8', '#8D6E63', '#4CAF50'],
+          });
+        } catch {
+          // Safe fallback
+        }
+
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 4000);
+      } else {
+        alert('خطا در تولید PDF. لطفاً از گزینه «چاپ مستقیم» استفاده نمایید.');
       }
-
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 4000);
     } catch (error) {
       console.error('Error generating PDF report:', error);
       alert('خطا در ایجاد فایل PDF. می‌توانید از دکمه «چاپ مستقیم» نیز استفاده فرمایید.');
     } finally {
       setIsExporting(false);
+      setExportProgress('');
     }
   };
 
@@ -273,7 +241,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
             className="px-4 py-2 bg-[#FADCD2] hover:bg-[#F3CEBF] text-[#3E2723] rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 disabled:opacity-50"
           >
             {isExporting ? (
-              <span>در حال ساخت PDF...</span>
+              <span>{exportProgress || 'در حال ساخت PDF...'}</span>
             ) : downloadSuccess ? (
               <>
                 <Check className="w-4 h-4 text-[#2E7D32]" />
@@ -314,10 +282,12 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
         </div>
       </div>
 
-      {/* A4 Printable Document Container */}
+      {/* ========================================================= */}
+      {/* 1. VISIBLE ON-SCREEN REPORT CONTAINER (Responsive for UX) */}
+      {/* ========================================================= */}
       <div 
         id="printable-report-container"
-        ref={reportRef}
+        ref={visibleReportRef}
         className="w-full max-w-3xl bg-white text-[#201A19] p-6 sm:p-9 shadow-2xl rounded-2xl sm:rounded-3xl border border-[#E6DFD5] mb-20 pdf-render-canvas"
         dir="rtl"
       >
@@ -370,18 +340,18 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
                   sub.items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex justify-between items-center bg-white rounded-xl p-2.5 border border-[#E6DFD5] shadow-2xs"
+                      className="grid grid-cols-[1fr_auto] items-center bg-white rounded-xl p-2.5 border border-[#E6DFD5] shadow-2xs gap-2"
                     >
-                      <div className="flex flex-col gap-0.5 flex-1 min-w-0 pr-1">
-                        <span className="font-bold text-xs sm:text-sm text-[#201A19] truncate">
+                      <div className="min-w-0 pr-1">
+                        <span className="font-bold text-xs sm:text-sm text-[#201A19] block leading-tight break-words">
                           {item.name}
                         </span>
-                        <span className="text-[10px] text-[#8D6E63] truncate">
+                        <span className="text-[10px] text-[#8D6E63] block leading-normal break-words mt-0.5">
                           {item.description || sub.name}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 shrink-0 justify-end">
                         {getItemBadge(item)}
                         {getItemValueDisplay(item)}
                       </div>
@@ -413,7 +383,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
               {requirements.map((req) => (
                 <div key={req.id} className="text-xs font-bold text-[#93000A] flex items-center gap-1.5 bg-white p-2 rounded-xl border border-[#FFCDD2]">
                   <span className="w-2 h-2 rounded-full bg-[#BA1A1A] shrink-0" />
-                  <span>{req.text}</span>
+                  <span className="break-words">{req.text}</span>
                 </div>
               ))}
             </div>
@@ -438,6 +408,217 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
         </div>
       </div>
 
+      {/* ========================================================================= */}
+      {/* 2. DEDICATED OFF-SCREEN PDF EXPORT CONTAINER (Deterministic 800px Layout) */}
+      {/* ========================================================================= */}
+      <div 
+        ref={pdfExportRef}
+        aria-hidden="true"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: '-9999px',
+          width: '800px',
+          minWidth: '800px',
+          maxWidth: '800px',
+          backgroundColor: '#ffffff',
+          color: '#201A19',
+          padding: '24px 30px',
+          direction: 'rtl',
+          textAlign: 'right',
+          fontFamily: "'Vazirmatn', sans-serif",
+          zIndex: -9999,
+          boxSizing: 'border-box',
+          opacity: 1,
+          pointerEvents: 'none',
+        }}
+      >
+        {/* PDF Header Table (800px total width, zero RTL flex-gap issues) */}
+        <table style={{ width: '100%', borderBottom: '2px solid #3E2723', paddingBottom: '14px', marginBottom: '18px', borderCollapse: 'collapse' }}>
+          <tbody>
+            <tr>
+              <td style={{ verticalAlign: 'middle', width: '60%' }}>
+                <table style={{ borderCollapse: 'collapse' }}>
+                  <tbody>
+                    <tr>
+                      <td style={{ verticalAlign: 'middle', paddingLeft: '12px' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '12px', backgroundColor: '#3E2723', color: '#FADCD2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                          <Coffee style={{ width: '22px', height: '22px' }} />
+                        </div>
+                      </td>
+                      <td style={{ verticalAlign: 'middle' }}>
+                        <div style={{ fontSize: '22px', fontWeight: '900', color: '#201A19', lineHeight: '1.1' }}>
+                          کافه چینو
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#8D6E63', fontWeight: '600', marginTop: '4px' }}>
+                          سامانه مدیریت شیفت و کنترل موجودی
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </td>
+
+              <td style={{ verticalAlign: 'middle', textAlign: 'left', width: '40%' }}>
+                <div style={{ display: 'inline-block', backgroundColor: '#F5F2EC', border: '1px solid #E6DFD5', borderRadius: '10px', padding: '6px 14px', fontSize: '12px', fontWeight: '800', color: '#201A19' }}>
+                  <span>{todayInfo.formattedPersian}</span>
+                </div>
+                <div style={{ fontSize: '11px', color: '#8D6E63', marginTop: '4px', fontWeight: '600' }} dir="ltr">
+                  <span>ساعت {timeNow} • {todayInfo.reportId}</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Categories Loop */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {categories.map((cat) => (
+            <div 
+              key={`pdf-${cat.id}`}
+              style={{
+                backgroundColor: '#FAF8F5',
+                border: '1px solid #EAE3DC',
+                borderRadius: '14px',
+                padding: '12px 14px',
+                boxSizing: 'border-box',
+              }}
+            >
+              {/* Category Title Header */}
+              <div style={{ borderBottom: '1px solid #E2D9D0', paddingBottom: '8px', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ backgroundColor: '#3E2723', color: '#FADCD2', padding: '5px', borderRadius: '8px', display: 'inline-flex' }}>
+                  {getCategoryIcon(cat.id)}
+                </div>
+                <span style={{ fontSize: '15px', fontWeight: '900', color: '#201A19' }}>
+                  {cat.name}
+                </span>
+              </div>
+
+              {/* Items 2-Column Grid (Fixed Pixel Widths to prevent overlapping) */}
+              <div 
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '350px 350px', 
+                  columnGap: '12px', 
+                  rowGap: '8px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {cat.subcategories.flatMap((sub) =>
+                  sub.items.map((item) => (
+                    <div
+                      key={`pdf-item-${item.id}`}
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #E0D7CE',
+                        borderRadius: '10px',
+                        padding: '8px 10px',
+                        display: 'grid',
+                        gridTemplateColumns: '215px 125px',
+                        alignItems: 'center',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      {/* Right side: Item Title & Description (allow wrapping, NO truncate) */}
+                      <div style={{ paddingLeft: '6px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: '800', color: '#201A19', lineHeight: '1.3', wordBreak: 'break-word' }}>
+                          {item.name}
+                        </div>
+                        <div style={{ fontSize: '9.5px', color: '#8D6E63', marginTop: '2px', lineHeight: '1.2', wordBreak: 'break-word' }}>
+                          {item.description || sub.name}
+                        </div>
+                      </div>
+
+                      {/* Left side: Status badge & Quantity / Value (Fixed alignment, no clipping) */}
+                      <div style={{ textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                        {getItemBadge(item)}
+                        {getItemValueDisplay(item)}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Requirements Box (خرید فوری) */}
+        <div 
+          style={{
+            marginTop: '16px',
+            backgroundColor: '#FFF8F7',
+            border: '1px solid #FFB4AB',
+            borderRadius: '14px',
+            padding: '12px 16px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div style={{ width: '24px', height: '24px', borderRadius: '8px', backgroundColor: '#BA1A1A', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle style={{ width: '14px', height: '14px' }} />
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: '900', color: '#93000A' }}>
+              اقلام کسری و نیازمندی‌های خرید فوری
+            </span>
+          </div>
+
+          {requirements.length === 0 ? (
+            <div style={{ fontSize: '11px', color: '#6F5A52', fontStyle: 'italic', paddingRight: '4px' }}>
+              هیچ مورد کسری برای خرید اضطراری در این شیفت ثبت نشده است.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '350px 350px', columnGap: '12px', rowGap: '6px' }}>
+              {requirements.map((req) => (
+                <div 
+                  key={`pdf-req-${req.id}`}
+                  style={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #FFCDD2',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    color: '#93000A',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#BA1A1A', flexShrink: 0 }} />
+                  <span style={{ wordBreak: 'break-word' }}>{req.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Signatures Row */}
+        <table style={{ width: '100%', marginTop: '24px', borderTop: '1px solid #EFEBE9', paddingTop: '16px', borderCollapse: 'collapse' }}>
+          <tbody>
+            <tr>
+              <td style={{ width: '50%', textAlign: 'center', padding: '12px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#201A19', marginBottom: '24px' }}>
+                  امضای سرپرست شیفت / انبار
+                </div>
+                <div style={{ width: '140px', margin: '0 auto', borderBottom: '2px dashed #8D6E63' }} />
+              </td>
+
+              <td style={{ width: '50%', textAlign: 'center', padding: '12px' }}>
+                <div style={{ fontSize: '11.5px', fontWeight: '800', color: '#201A19', marginBottom: '24px' }}>
+                  تایید نهایی مدیریت کافه
+                </div>
+                <div style={{ width: '140px', margin: '0 auto', borderBottom: '2px dashed #8D6E63' }} />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Footer info line */}
+        <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '10px', color: '#8D6E63', borderTop: '1px solid #F0EAE1', paddingTop: '8px' }}>
+          این سند توسط سامانه رسمی مدیریت کافه چینو در تاریخ {todayInfo.fullDate} ساعت {timeNow} صادر گردیده است.
+        </div>
+      </div>
+
       {/* Bottom Sticky Action Bar (Hidden on Print) */}
       <div 
         className="no-print fixed bottom-0 left-0 right-0 z-30 bg-[#FAF8F5]/95 backdrop-blur-md border-t border-[#EFEBE9] px-4 py-3 flex items-center justify-center gap-3"
@@ -450,7 +631,7 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
           className="w-full max-w-sm h-12 bg-[#3E2723] hover:bg-[#201A19] active:scale-[0.98] text-white font-extrabold text-sm sm:text-base rounded-2xl flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(62,39,35,0.2)] transition-all disabled:opacity-50"
         >
           <Download className="w-5 h-5 text-[#FADCD2]" />
-          <span>{isExporting ? 'در حال تولید سند PDF...' : 'دانلود مستقیم فایل PDF'}</span>
+          <span>{isExporting ? (exportProgress || 'در حال تولید سند PDF...') : 'دانلود مستقیم فایل PDF'}</span>
         </button>
 
         {requirements.length > 0 && (
@@ -471,3 +652,4 @@ export const ReportPreview: React.FC<ReportPreviewProps> = ({
     </div>
   );
 };
+

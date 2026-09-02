@@ -21,10 +21,10 @@ export const INITIAL_CATEGORIES: Category[] = [
         name: 'مواد تازه و یخچالی',
         items: [
           { id: 'basil', name: 'ریحان تازه', type: 'level', value: 'medium', description: 'پاک شده و شسته شده', unit: 'بسته' },
-          { id: 'cherry-tomato', name: 'گوجه گیلاسی', type: 'level', value: 'medium', description: 'شسته شده', unit: 'ظرف' },
-          { id: 'lettuce', name: 'کاهو فرانسوی/رسمی', type: 'level', value: 'medium', description: 'ضدعفونی شده', unit: 'سبد' },
-          { id: 'tomato', name: 'گوجه فرنگی', type: 'numeric', value: 4, description: 'جعبه ۵ کیلویی', unit: 'کیلو' },
-          { id: 'cream-cheese', name: 'پنیر خامه‌ای', type: 'numeric', value: 2, description: 'قالب‌های ۱ کیلویی', unit: 'بسته' }
+          { id: 'cherry-tomato', name: 'گوجه گیلاسی', type: 'level', value: 'low', description: 'شسته شده و آماده مصرف', unit: 'ظرف' },
+          { id: 'lettuce', name: 'کاهو فرانسوی/بیس‌بیس تازه', type: 'level', value: 'medium', description: 'ضدعفونی شده و آبکش‌شده', unit: 'سبد' },
+          { id: 'tomato', name: 'گوجه فرنگی گلخانه‌ای', type: 'numeric', value: 4, description: 'جعبه ۵ کیلویی درجه یک', unit: 'کیلو' },
+          { id: 'cream-cheese', name: 'پنیر خامه‌ای صبحانه', type: 'numeric', value: 0, description: 'قالب‌های ۱ کیلویی', unit: 'بسته' }
         ]
       },
       {

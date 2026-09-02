@@ -96,8 +96,30 @@ export function getJalaliWeekdayIndex(jy: number, jm: number, jd: number): numbe
   return (jsDay + 1) % 7;
 }
 
-export function getTodayJalaliDate(date = new Date()) {
-  const [jy, jm, jd] = gregorianToJalali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+/**
+ * Returns the effective date based on the café 01:00 AM shift cutoff.
+ * From 00:00 to 00:59:59 (midnight hour), the operational shift belongs to the previous day.
+ * At 01:00:00 AM onwards, the new operational shift begins.
+ */
+export function getCafeShiftDate(date = new Date()): Date {
+  const d = new Date(date);
+  if (d.getHours() < 1) {
+    // Before 1:00 AM -> belongs to yesterday's shift
+    d.setDate(d.getDate() - 1);
+  }
+  return d;
+}
+
+export function getTodayJalaliDate(inputDate?: Date, applyShiftCutoff = true) {
+  const effectiveDate = inputDate 
+    ? (applyShiftCutoff ? getCafeShiftDate(inputDate) : inputDate)
+    : getCafeShiftDate();
+
+  const [jy, jm, jd] = gregorianToJalali(
+    effectiveDate.getFullYear(), 
+    effectiveDate.getMonth() + 1, 
+    effectiveDate.getDate()
+  );
   const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
   const standardString = `${jy}/${pad(jm)}/${pad(jd)}`;
   const formattedPersian = `${toPersianDigits(jy)}/${toPersianDigits(pad(jm))}/${toPersianDigits(pad(jd))}`;
@@ -119,6 +141,49 @@ export function getTodayJalaliDate(date = new Date()) {
     weekday,
     fullDate,
   };
+}
+
+export interface PastShiftDayInfo {
+  offset: number; // 0 = today, 1 = yesterday, etc.
+  standardString: string;
+  formattedPersian: string;
+  weekday: string;
+  fullDate: string;
+  label: string;
+  isToday: boolean;
+}
+
+/**
+ * Returns past operational days (up to 5 days) starting from today's operational shift.
+ */
+export function getPastCafeShiftDays(count = 5, baseDate = new Date()): PastShiftDayInfo[] {
+  const baseShift = getCafeShiftDate(baseDate);
+  const result: PastShiftDayInfo[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const d = new Date(baseShift);
+    d.setDate(d.getDate() - i);
+    // Don't re-apply cutoff because baseShift already has cutoff applied
+    const jalaliInfo = getTodayJalaliDate(d, false);
+
+    let label = '';
+    if (i === 0) label = 'امروز (شیفت جاری)';
+    else if (i === 1) label = 'دیروز';
+    else if (i === 2) label = '۲ روز قبل';
+    else label = `${toPersianDigits(i)} روز قبل`;
+
+    result.push({
+      offset: i,
+      standardString: jalaliInfo.standardString,
+      formattedPersian: jalaliInfo.formattedPersian,
+      weekday: jalaliInfo.weekday,
+      fullDate: jalaliInfo.fullDate,
+      label,
+      isToday: i === 0,
+    });
+  }
+
+  return result;
 }
 
 export function getTodayJalaliString(date = new Date()): {

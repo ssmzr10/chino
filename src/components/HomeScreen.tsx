@@ -9,10 +9,13 @@ import {
   AlertCircle,
   Sparkles,
   ChevronLeft,
-  LogOut
+  LogOut,
+  Cloud,
+  CloudOff
 } from 'lucide-react';
 import { AppSection } from '../types';
 import { getTodayJalaliDate, toPersianDigits } from '../utils/persianDate';
+import { isSupabaseConfigured } from '../lib/supabaseClient';
 
 interface HomeScreenProps {
   onNavigate: (section: AppSection) => void;
@@ -55,6 +58,17 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 <span className="text-[11px] bg-[#F3EBE7] text-[#5D4037] font-bold px-2.5 py-0.5 rounded-full border border-[#E6DDD8]">
                   پنل مدیریت
                 </span>
+                {isSupabaseConfigured ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] bg-[#E8F5E9] text-[#2E7D32] font-bold px-2 py-0.5 rounded-full border border-[#C8E6C9]" title="داده‌ها به صورت زنده با دیتابیس Supabase همگام می‌شوند">
+                    <Cloud className="w-3 h-3 text-[#2E7D32]" />
+                    <span>Realtime Sync</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] bg-[#FFF3E0] text-[#E65100] font-medium px-2 py-0.5 rounded-full border border-[#FFE0B2]" title="داده‌ها در حافظه محلی ذخیره می‌شوند">
+                    <CloudOff className="w-3 h-3 text-[#E65100]" />
+                    <span>محلی (آفلاین)</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-[#8D6E63] font-medium mt-0.5 flex items-center gap-1.5">
                 <CalendarIcon className="w-3.5 h-3.5 text-[#8D6E63]" />
